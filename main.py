@@ -29,8 +29,8 @@ def gmail_service():
                 SCOPES
             )
 
-            # Manual authentication (no localhost required)
-            creds = flow.run_console()
+            # Localhost authentication
+            creds = flow.run_local_server(port=0)
 
         with open("token.json", "w") as token:
             token.write(creds.to_json())
