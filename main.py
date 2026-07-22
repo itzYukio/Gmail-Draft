@@ -19,14 +19,18 @@ def gmail_service():
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
 
     if not creds or not creds.valid:
+
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
+
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 "credentials.json",
                 SCOPES
             )
-            creds = flow.run_local_server(port=0)
+
+            # Manual authentication (no localhost required)
+            creds = flow.run_console()
 
         with open("token.json", "w") as token:
             token.write(creds.to_json())
@@ -35,10 +39,7 @@ def gmail_service():
 
 
 def generate_order_number():
-    # First block: 400-499
     first = random.randint(400, 499)
-
-    # Second and third blocks: 7 digits each
     second = random.randint(1000000, 9999999)
     third = random.randint(1000000, 9999999)
 
@@ -46,15 +47,17 @@ def generate_order_number():
 
 
 def create_draft(service, to_email, subject, body):
+
     message = MIMEText(body)
 
-    # Leave this blank if you don't want a recipient
     if to_email:
         message["to"] = to_email
 
     message["subject"] = subject
 
-    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    raw = base64.urlsafe_b64encode(
+        message.as_bytes()
+    ).decode()
 
     draft = {
         "message": {
@@ -69,30 +72,34 @@ def create_draft(service, to_email, subject, body):
 
 
 def main():
+
     service = gmail_service()
 
-    # Leave blank if you don't want any recipient
     recipient = "ofm@amazon.in"
 
-    used_order_numbers = set()
+    used = set()
 
-    for i in range(100):
+    NUMBER_OF_DRAFTS = 100
 
-        # Generate a unique order number
+    for i in range(NUMBER_OF_DRAFTS):
+
         while True:
-            order_number = generate_order_number()
-            if order_number not in used_order_numbers:
-                used_order_numbers.add(order_number)
+            order = generate_order_number()
+
+            if order not in used:
+                used.add(order)
                 break
 
-        subject = order_number
-        body = ""
+        create_draft(
+            service,
+            recipient,
+            order,
+            ""
+        )
 
-        create_draft(service, recipient, subject, body)
+        print(f"Created draft {i+1}: {order}")
 
-        print(f"Created draft {i + 1}: {order_number}")
-
-    print("Done! 100 drafts created.")
+    print("Done! All drafts created.")
 
 
 if __name__ == "__main__":
